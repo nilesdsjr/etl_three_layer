@@ -1,0 +1,6 @@
+*.pyc
+etl_three_layer/input/__pycache__/csv_loader.cpython-311.pyc
+etl_three_layer/output/__pycache__/__init__.cpython-311.pyc
+etl_three_layer/processing/__pycache__/metrics.cpython-311.pyc
+etl_three_layer/processing/__pycache__/__init__.cpython-311.pyc
+etl_three_layer/output/__pycache__/csv_writer.cpython-311.pyc

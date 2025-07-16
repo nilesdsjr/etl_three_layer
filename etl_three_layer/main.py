@@ -1,6 +1,6 @@
 
 #!/usr/bin/env python3
-import argparse
+import os
 from input.csv_loader import read_csv
 from processing.metrics import compute_user_metrics, top_product
 from output.csv_writer import write_csv
@@ -16,8 +16,9 @@ def run_pipeline(input_path: str, output_path: str):
     write_csv(summary, output_path)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input', required=True, help='Path to source CSV')
-    parser.add_argument('--output', required=True, help='Path to output CSV')
-    args = parser.parse_args()
-    run_pipeline(args.input, args.output)
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(script_dir, "data", "test.csv")
+    result_dir = os.path.join(script_dir, "data", "result", "summary.csv")
+
+    run_pipeline(file_path, result_dir)
