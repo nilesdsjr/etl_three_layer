@@ -1,121 +1,142 @@
-# 📄 ETL Pipeline Design Documentation Template
+# 📄 Modern (2025) ETL / ELT Pipeline Design Doc
 
 ---
 
-## 🔁 Phases in ETL
+## 🔁 Integration Strategy  
+| Phase | Mode | Tools / Patterns |
+|-------|------|------------------|
+| **Ingest** | `☐ Batch  ☐ Log-based CDC  ☐ Stream (Kafka/PubSub)` | Fivetran / Airbyte / DMS / Debezium |
+| **Transform** | `☐ ELT (dbt)  ☐ Spark  ☐ Beam  ☐ Flink  ☐ Pandas` |
+| **Serve** | `☐ Warehouse  ☐ Lakehouse  ☐ Feature Store  ☐ API` |
 
-### 1. Extract
-Retrieves and verifies data from each source, including CRM, APIs, databases, logs, and platforms.
-
-- **Full extraction**: all records from the source
-- **Source-driven extraction**: triggered by source system changes
-- **Incremental extraction**: only new or changed records since last run
-
-### 2. Transform
-Cleans, merges, filters, and aggregates data for analytical use.
-
-- **Cleaning**: normalize types, remove nulls
-- **Merging**: join tables from multiple sources
-- **Filtering**: keep relevant records only
-- **Aggregation**: group by metrics such as sums, averages, min, max
-
-### 3. Load
-Loads processed data into target destinations.
-
-- Can be flat files, SQL databases, cloud warehouses (e.g., BigQuery)
+> _Document latency target, exactly-once guarantees, and idempotency logic._
 
 ---
 
-## 1. Project Context
-
-- **Project Name**:  
-- **Author / Team**:  
-- **Start Date**:  
-- **Last Updated**:  
-- **Stakeholders**:  
-- **Frequency**: `☐ Real-time ☐ Daily ☐ Weekly`  
-- **Pipeline Type**: `☐ ETL ☐ ELT ☐ Batch ☐ Stream`  
-
----
-
-## 2. Business Objective
-
-- **Goal**:  
-- **KPIs / Metrics Produced**:  
-- **Consumers**:  
+## 1 · Project Context  
+- **Name**:   
+- **Repository**: `git@…`  
+- **Team / Owners**:   
+- **Start / Last Update**:   
+- **Stakeholders & SLAs**: e.g. <5 min freshness, 99.9 % uptime  
+- **Domains / Data Products**:   
+- **Compliance Tier**: `☐ Public ☐ Internal ☐ PII ☐ PCI/PHI`  
 
 ---
 
-## 3. Extract Phase
-
-- **Source Systems**:  
-- **Extraction Method**: `☐ Full ☐ Incremental ☐ Source-driven`  
-- **Authentication / Access**:  
-- **Landing Zone Path (Bronze)**:  
-- **Extraction Notes / Challenges**:  
+## 2 · Business Objective  
+- **Problem / Opportunity**:   
+- **Success Metrics (KPIs)**:   
+- **Downstream Consumers**: dashboards, ML models, reverse ETL, etc.  
 
 ---
 
-## 4. Transform Phase
+## 3 · Source-to-Landing (Bronze)  
+| Source | Type | Change-detection | Connector | Landing Path | Notes |
+|--------|------|-----------------|-----------|--------------|-------|
+| … | DB | Log-based CDC | DMS | `s3://bronze/db/table/` | handle deletes with soft-flags |
 
-- **Cleaning Steps**: `☐ Drop nulls ☐ Normalize ☐ Deduplication`  
-- **Joins / Enrichment**:  
-- **Filtering Logic**:  
-- **Aggregations**:  
-- **Transformation Tools**: `☐ Spark ☐ Beam ☐ dbt ☐ Pandas ☐ SQL`  
-- **Staging Zone Path (Silver)**:  
-
----
-
-## 5. Load Phase
-
-- **Target Destination**: `☐ BigQuery ☐ Snowflake ☐ PostgreSQL ☐ Cloud Storage`  
-- **Load Strategy**: `☐ Overwrite ☐ Append ☐ Merge / SCD`  
-- **Data Model**: `☐ Star Schema ☐ Flat Table`  
-- **Partitioning / Clustering Strategy**:  
-- **Post-load Validation**:  
+- **Auth**: IAM role / secret manager  
+- **Expected Volume & Growth**: e.g. 50 GB/day  
+- **Schema Contract**: Avro / Protobuf versioned in Schema Registry  
 
 ---
 
-## 6. Scheduling & Orchestration
-
-- **Tool Used**: `☐ Airflow / Composer ☐ Cloud Scheduler ☐ Prefect`  
-- **Trigger Type**: `☐ Time-based ☐ Event-based`  
-- **Retry Policy / SLA**:  
-- **Monitoring Integration**:  
-
----
-
-## 7. Cost, Monitoring & Maintenance
-
-- **Cost Optimization**:  
-  - `☐ Partitioned tables ☐ Materialized views ☐ Filter pushdown`  
-- **Data Quality Checks**: `☐ Great Expectations ☐ SQL tests`  
-- **Alerting Rules**: `☐ Slack ☐ Email ☐ PagerDuty`  
+## 4 · Transformation (Silver)  
+- **Incremental Logic**: `dbt incremental` / merge-on-read  
+- **Enrichment / Joins**: …  
+- **Staging Format**: Parquet + Iceberg table (snapshot isolation)  
+- **Unit Tests**: spark-tests, dbt unit, pytest-sql  
 
 ---
 
-## 8. Security & Governance
-
-- **IAM Role Definitions**:  
-- **Encryption**: `☐ CMEK ☐ Default encryption`  
-- **Lineage Tools**: `☐ Dataplex ☐ Data Catalog`  
-- **PII Handling / Compliance**:  
+## 5 · Curated (Gold) & Semantic Layer  
+- **Model Type**: `☐ Star  ☐ Data Vault  ☐ Wide Table`  
+- **Metrics Defined** (semantic layer / dbt metrics): revenue, LTV, …  
+- **Slowly Changing Dimension Strategy**: SCD Type 2 via MERGE  
 
 ---
 
-## 9. Outputs / Dashboards
+## 6 · Data-Quality Management  🔍
+| Check | Layer | Owner | Severity | Threshold | Action / Auto-remediation |
+|-------|-------|-------|----------|-----------|---------------------------|
+| Not-null `customer_id` | Silver | Data Eng | **Error** | 0 null rows | Fail task; roll back write |
+| Freshness < 15 min | Gold | Platform | **Warn** | `MAX(ingest_time)` | Alert Slack `#data-alerts` |
+| Duplicate PK rows | Silver | Data Eng | **Error** | 0 duplicates | Run de-dupe script + notify |
+| PII leakage | Bronze | Security | **Block** | 0 matches | Route to quarantine bucket |
+| Volume variance ±20 % | Bronze | Data Eng | **Warn** | window 7 d | Auto-open JIRA ticket |
 
-- **BI Tools Connected**: `☐ Looker ☐ Tableau ☐ Power BI ☐ Superset`  
-- **KPIs Delivered**:  
-- **Data Products Produced**: `☐ Datasets ☐ Dashboards ☐ API / file exports`  
+- **Tooling**: Great Expectations / Soda-Core / dbt tests  
+- **Quality SLAs**: 99 % tests pass; fix critical issues < 4 h  
+- **Anomaly Detection**: Monte Carlo / Databand freshness & volume monitors  
+- **Escalation Policy**: On-call engineer → Platform SRE after 30 min  
 
 ---
 
-## 10. Change Log & Future Work
+## 7 · Load / Serve  
+| Target | Write-Mode | Partition / Cluster | Retention |
+|--------|-----------|---------------------|-----------|
+| BigQuery | MERGE | `date` partition, cluster by `customer_id` | 730 days |
+| FeatureStore | Upsert | key=`cust_id` | latest only |
 
-- **Git Repo / Versioning**:  
-- **Schema Changes**:  
-- **Enhancement Backlog**:  
-- **Handoff Materials**:  
-  - `☐ Runbook ☐ DAG diagram ☐ Readme / onboarding guide`
+- **Post-Load Validation**: row-count match ±0.1 %, checksum diff = 0  
+
+---
+
+## 8 · Orchestration & CI/CD  
+- **Scheduler**: Airflow 2.9 / Dagster / Prefect  
+- **Trigger**: `☐ Cron  ☐ Event (PubSub)  ☐ On-Commit`  
+- **Retries / SLA Miss Callback**: 3× exponential backoff, notify Slack  
+- **Deployment**: GitHub Actions → Terraform → DAG dry-run → Prod  
+- **Environments**: dev → staging → prod using data “sandboxes”  
+
+---
+
+## 9 · Observability, Lineage & Metrics  
+- **Lineage & Catalog**: OpenLineage + DataHub (auto-populated)  
+- **Dashboards**: Grafana → _etl_latency_seconds_, _rows_dropped_total_  
+- **Log Aggregation**: Cloud Logging / Loki → centralized SIEM  
+- **Alert Routing**: PagerDuty for SEV-1, Slack for SEV-2/3  
+
+---
+
+## 10 · Security & Compliance  
+- **IAM Roles**: least privilege, service accounts per DAG  
+- **Encryption**: At rest (KMS) & in transit (TLS 1.3)  
+- **Row/Column Level Security**: BQ RLS / Snowflake Secure Views  
+- **Data Masking / Tokenization**: yes for PII columns  
+- **Audit Logs**: routed to SOC for 90 days  
+
+---
+
+## 11 · Disaster Recovery & Backfill  
+| Asset | RTO | RPO | Strategy |
+|-------|-----|-----|----------|
+| Warehouse | 1 h | 15 min | point-in-time restore, snapshots |
+| Streaming | 5 min | 0 min | Kafka topic replication (3×) |
+
+- **Backfill Plan**: replay CDC logs from offset X  
+
+---
+
+## 12 · Cost & FinOps  
+- **Budget Owner**:   
+- **Cost Monitors**: BQ slots, Snowflake credits, S3 storage  
+- **Optimization Levers**: partition pruning, materialized views, workload-manager rules  
+- **Monthly Spend Target**: USD ____  
+
+---
+
+## 13 · Runbook & Incident Mgmt  
+- **Pager Rotation**: @data-oncall  
+- **Common Failures & Fixes**: connection timeout, schema drift  
+- **Escalation Ladder**: L1 Data Eng → L2 Platform ☏ → L3 DevOps  
+- **Handover Docs**: DAG diagram, KB article, Post-mortem template  
+
+---
+
+## 14 · Change Log  
+| Date | Author | Change | Version |
+|------|--------|--------|---------|
+| 2025-07-23 | Niles D. | Initial draft | v1.0 |
+| 2025-07-23 | Niles D. | Added Data-Quality section | v1.1 |
