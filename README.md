@@ -1,114 +1,184 @@
-# 📄 Modern (2025) ETL / ELT Pipeline Design Document
+# 📄 **Modern (2025) ETL / ELT Pipeline Design Document**
+
+Use this doc to capture every design decision—from source-system quirks to SLAs and on-call playbooks.  
+Delete any row or checkbox that doesn’t apply after you finish design reviews.
 
 ---
 
-## 🔁 Integration Strategy (select all that apply)
+## 🔁 **Integration Strategy**
 
-| Phase | Mode | Common Tools / Patterns | Notes |
-|-------|------|-------------------------|-------|
-| **Ingest** | ☐ Batch <br>☐ Log-based CDC <br>☐ Snapshot Replication <br>☐ Event Stream (Kafka/Pub/Sub/Kinesis) <br>☐ File Drop (SFTP / S3) | Airbyte, Fivetran, Debezium, DMS, NiFi, Flume | — |
-| **Transform** | ☐ ELT (dbt / SQL) <br>☐ Spark / PySpark <br>☐ Beam / Dataflow <br>☐ Flink <br>☐ KsqlDB <br>☐ Pandas / Polars <br>☐ Custom Lambda/FaaS | — | — |
-| **Serve** | ☐ Warehouse (BQ, Snowflake, Redshift) <br>☐ Lakehouse (Delta, Iceberg, Hudi) <br>☐ Relational DB (Postgres, MySQL) <br>☐ NoSQL (Mongo, DynamoDB) <br>☐ Feature Store (Feast, Vertex FS) <br>☐ Search (OpenSearch, Solr) <br>☐ API / Reverse-ETL | — | — |
+| Phase | Mode (☑ choose) | Common Tools / Patterns | Latency Target (ms / min / hr) | Notes |
+|-------|-----------------|-------------------------|--------------------------------|-------|
+| **Ingest** | ☐ **Batch** (dump) <br>☐ **Incremental** (watermark) <br>☐ **Log-based CDC** <br>☐ **Snapshot replication** <br>☐ **Event stream** (Kafka / PubSub / Kinesis) <br>☐ **File drop** (SFTP / S3) | Airbyte · Fivetran · Debezium · Database DMS · NiFi | | |
+| **Transform** | ☐ **ELT** (dbt / SQL) <br>☐ **Spark / PySpark** <br>☐ **Beam / Dataflow** <br>☐ **Flink** <br>☐ **KsqlDB** <br>☐ **Pandas / Polars** <br>☐ **Custom FaaS / Lambda** | - | | |
+| **Serve** | ☐ **Warehouse** (BigQuery · Snowflake · Redshift) <br>☐ **Lakehouse** (Delta · Iceberg · Hudi) <br>☐ **Data Lake** (S3 + Glue, GCS + Dataplex) <br>☐ **Relational DB** (PostgreSQL · MySQL) <br>☐ **NoSQL** (Mongo · DynamoDB · Cassandra) <br>☐ **Feature Store** (Feast · Vertex FS) <br>☐ **Search / Vector DB** (OpenSearch · Pinecone) <br>☐ **API / Reverse-ETL** | - | | |
 
-> _Document required latency, ordering guarantees, and idempotency._
-
----
-
-## 1 · Project Context
-- **Name / Repo**:  
-- **Team & Owners**:  
-- **Start / Last Update**:  
-- **Stakeholders & SLAs**:  
-- **Compliance Tier**: ☐ Public ☐ Internal ☐ PII ☐ PCI/PHI  
+> **Guarantees**: idempotent writes ? · exactly-once / at-least-once · ordering constraints · back-pressure plan.
 
 ---
 
-## 2 · Business Objective
-- **Problem / Opportunity**:  
-- **Success Metrics (KPIs)**:  
-- **Down-stream Consumers**: dashboards, ML models, ops, …  
+## 1 · **Project Context**
+
+| Field | Value |
+|-------|-------|
+| **Project / Repo** |  |
+| **Team / Owners** |  |
+| **Start Date** |  |
+| **Last Updated** |  |
+| **Stakeholders & SLAs** | e.g. < 5 min freshness · 99.9 % uptime |
+| **Compliance Tier** | ☐ Public ☐ Internal ☐ PII ☐ PCI / PHI |
 
 ---
 
-## 3 · Extract Phase  (choose details)
+## 2 · **Business Objective**
 
-| Item | Options | Selected |
-|------|---------|----------|
-| **Source Types** | CRM, ERP, SaaS APIs, OLTP DBs, Data Lake files, Social feeds, IoT sensors, Logs, IoT | |
-| **Extraction Method** | ☐ Full Dump <br>☐ Incremental (watermark) <br>☐ Source-push / Webhook <br>☐ Log-based CDC <br>☐ Change-Data Snapshots <br>☐ Stream (event queue) | |
-| **Trigger** | ☐ Schedule (cron) <br>☐ Event <br>☐ Continuous | |
-| **Landing Zone** | s3://bronze/…, gs://…, ADLS, Kafka topic, GCS bucket | |
-| **File/Record Format** | CSV, JSON, Parquet, Avro, Protobuf, ORC | |
-| **Auth** | IAM role, OAuth, Key/PWD, SSH key, VPN | |
-| **Expected Volume / Velocity** | — | |
-| **Edge Cases** | soft deletes, schema drift, throttling limits | |
+*Goal, success metrics, and who uses the output.*
+
+|                                |                                         |
+|--------------------------------|-----------------------------------------|
+| **Problem / Opportunity**      |                                         |
+| **KPIs / Metrics Produced**    | revenue, churn-rate, MAU, …             |
+| **Down-stream Consumers**      | dashboards, ML models, finance exports  |
 
 ---
 
-## 4 · Transform Phase  (choose details)
+## 3 · **Extract Phase**
 
-| Category | Common Operations (mark all required) |
-|----------|---------------------------------------|
-| **Data Quality / Hygiene** | ☐ Drop / flag nulls <br>☐ Type casting <br>☐ Trim whitespace <br>☐ Standardise timestamps / time-zones <br>☐ Deduplicate <br>☐ Outlier capping |
-| **Enrichment** | ☐ Look-ups / dimension joins <br>☐ Geo-coding <br>☐ Currency conversion <br>☐ ML inference (embedding, sentiment) |
-| **Filtering** | ☐ Row, ☐ Column, ☐ Time-window, ☐ PII strip |
-| **Aggregations** | ☐ Sum, Avg, Min/Max, Median <br>☐ Window funcs <br>☐ Sessionisation |
-| **Restructuring** | ☐ Pivot / Unpivot <br>☐ Flatten nested JSON <br>☐ Explode arrays |
-| **Governance** | ☐ Hash / Mask PII <br>☐ Tokenise <br>☐ Apply data contract (schema registry) |
-| **Incremental Pattern** | ☐ Append-only <br>☐ Merge-on-read (delta/iceberg) <br>☐ Partition overwrite <br>☐ SCD Type 1/2 <br>☐ Snapshotting |
-| **Testing** | dbt tests, Great Expectations, Soda, unit (pytest-sql), integration dry-runs |
-
----
-
-## 5 · Load / Serve Phase  (choose details)
-
-| Item | Options | Selected |
-|------|---------|----------|
-| **Destination** | Warehouse, Data Lake, Lakehouse, Feature Store, Relational DB, BI extract, Search index, Message Bus, API | |
-| **Load Strategy** | ☐ Append <br>☐ Upsert / MERGE <br>☐ Overwrite <br>☐ Micro-batch <br>☐ Streaming (exactly-once) | |
-| **Table Format** | ☐ Native (Snowflake) <br>☐ Delta <br>☐ Iceberg <br>☐ Hudi | |
-| **Partition / Cluster Keys** | — | |
-| **Retention / TTL** | — | |
-| **Post-load Validation** | Row-count check, checksum, statistical compare | |
+| Item | Options / Examples | Your Selection & Notes |
+|------|--------------------|------------------------|
+| **Source Systems** | CRM · ERP · SaaS APIs · OLTP DBs · Data-lake files · Social feeds · IoT sensors · Logs | |
+| **Extraction Method** | ☐ Full dump <br>☐ Incremental (watermark) <br>☐ Source-push / Webhook <br>☐ Log-based CDC <br>☐ Stream events | |
+| **Trigger** | ☐ Schedule (cron) <br>☐ Event based <br>☐ Continuous stream | |
+| **Landing Zone** | `s3://bronze/...` · `gs://bronze/...` · ADLS Gen2 · Kafka topic | |
+| **Record / File Format** | CSV · JSON · Parquet · Avro · Protobuf · ORC | |
+| **Authentication** | IAM role · OAuth2 · Service Account key · SSH key · VPN | |
+| **Expected Volume & Velocity** | ___ GB / day ; peak ___ msg / s | |
+| **Edge-case Handling** | soft deletes · high watermark reset · API rate-limit | |
 
 ---
 
-## 6 · Data-Quality Management  🔍
-*(keep or extend the matrix; choices already embedded)*
+## 4 · **Transform Phase** *(“Silver”)*
+
+| Category | Check all that apply / describe |
+|----------|---------------------------------|
+| **Hygiene / Quality** | ☐ Drop / flag nulls ☐ Type-cast ☐ Trim whitespace ☐ Time-zone standardise ☐ Deduplicate ☐ Outlier capping |
+| **Enrichment** | ☐ Dim-table joins ☐ Geo-enrich ☐ Currency FX ☐ ML inference (sentiment, embeddings) |
+| **Filtering** | ☐ Row filter ☐ Column filter ☐ Time-window ☐ PII strip / hash |
+| **Aggregation & Windowing** | ☐ Sum ☐ Avg ☐ Min/Max ☐ Median ☐ Percentiles ☐ Sessionisation |
+| **Restructuring** | ☐ Pivot / Unpivot ☐ Flatten JSON ☐ Explode arrays |
+| **Incremental Pattern** | ☐ Append-only ☐ Merge-on-read (Delta/Iceberg) ☐ Partition overwrite ☐ SCD Type 1 ☐ SCD Type 2 ☐ Periodic snapshot |
+| **Governance Actions** | ☐ Schema contract validation ☐ PII masking / tokenisation |
+| **Data-quality Tests** | dbt tests · Great Expectations · Soda-SQL · pytest-sql |
+| **Processing Engine** | Spark · dbt · Beam · Flink · Pandas · Polars | |
 
 ---
 
-## 7 · Orchestration & CI/CD
-*(unchanged – list scheduler, triggers, retries, GitOps flow, etc.)*
+## 5 · **Load / Serve Phase** *(“Gold” & downstream)*
+
+| Field | Options | Selection |
+|-------|---------|-----------|
+| **Destination** | Warehouse · Lakehouse · Relational DB · Feature Store · Search index · API | |
+| **Load Strategy** | ☐ Append ☐ Upsert / MERGE ☐ Overwrite ☐ Micro-batch ☐ Streaming (exactly-once) | |
+| **Table Format** | ☐ Native (Snowflake) ☐ Delta ☐ Iceberg ☐ Hudi | |
+| **Partition / Cluster Keys** | e.g. `event_date`, `customer_id` | |
+| **Retention / TTL** | e.g. 730 days · GDPR delete policy | |
+| **Post-load Validation** | row-count ±0.1 % · checksum diff · metric parity | |
+| **Semantic Layer / Metrics** | dbt metrics · LookML · Cube.js · MetricFlow | |
 
 ---
 
-## 8 · Observability, Lineage & Metrics
-*(unchanged – pick OpenLineage, DataHub, Monte Carlo, etc.)*
+## 6 · **Data-Quality Management 🔍**
+
+| Check | Layer | Owner | Severity | Threshold | Auto-remediation / Action |
+|-------|-------|-------|----------|-----------|---------------------------|
+| Not-null `customer_id` | Silver | Data Eng | **Error** | 0 nulls | Fail job, rollback |
+| Freshness < 15 min     | Gold   | Platform | Warn      | 15 min  | Alert Slack #data-alerts |
+| Volume variance ±20 %  | Bronze | Data Eng | Warn      | ±20 %   | Auto-open JIRA ticket |
+| Duplicate PK rows      | Silver | Data Eng | **Error** | 0 rows | Run de-dupe script |
+| PII leakage            | Bronze | SecOps  | Block     | 0 hits | Quarantine bucket |
+
+*Tooling:* Great Expectations · Soda-Core · dbt tests · Monte Carlo · Databand  
+*Quality SLA:* ≥ 99 % tests pass; fix *critical* issues < 4 h.
 
 ---
 
-## 9 · Security & Compliance
-*(unchanged – IAM, encryption, RLS/CLS, masking, audit logs, …)*
+## 7 · **Orchestration & CI/CD**
+
+| Item | Details |
+|------|---------|
+| **Scheduler** | Airflow 2.x · Prefect 2 · Dagster · Cloud Composer |
+| **Trigger Types** | ☐ Cron ☐ Event (Pub/Sub) ☐ On-commit CI |
+| **Retries & SLA Miss** | 3× exponential back-off · on-fail callback →
+Slack · SLA 15 min |
+| **Envs & Promotion** | dev → staging → prod (data sandboxes) |
+| **CI Pipeline** | GitHub Actions → Terraform plan/apply → DAG lint →
+unit + integration tests |
 
 ---
 
-## 10 · Disaster Recovery & Backfill
-*(select RTO/RPO strategy; include replay method for batch vs stream)*
+## 8 · **Observability, Lineage & Metrics**
+
+| Aspect | Tooling / Endpoint |
+|--------|-------------------|
+| **Lineage** | OpenLineage · DataHub · Marquez |
+| **Data Catalog** | DataHub · Amundsen · Dataplex |
+| **Dashboards** | Grafana / Cloud Monitoring: `etl_latency_seconds`,
+`rows_dropped_total` |
+| **Alert Routing** | PagerDuty (SEV-1) · Slack (SEV-2/3) |
+| **Log Aggregation** | Cloud Logging · Loki → central SIEM |
 
 ---
 
-## 11 · Cost & FinOps
-*(specify slot/credit budgets, optimisation levers, chargeback tags)*
+## 9 · **Security & Compliance**
+
+| Domain | Controls |
+|--------|----------|
+| **IAM / RBAC** | Least-privilege service accounts per DAG |
+| **Encryption** | At-rest (KMS/CMEK) · In-transit (TLS 1.3) |
+| **Row / Column Level Security** | BQ RLS · Snowflake Secure Views |
+| **Data Masking / Tokenisation** | Hash PII, vault tokens |
+| **Audit Logs** | Route to SOC; retain ≥ 90 days |
+| **Regulations** | GDPR · LGPD · HIPAA (if applicable) |
 
 ---
 
-## 12 · Runbook & Incident Mgmt
-*(pager rotation, escalation, common fixes, post-mortem template)*
+## 10 · **Disaster Recovery & Backfill**
+
+| Asset | RTO | RPO | Strategy |
+|-------|-----|-----|----------|
+| Warehouse | 1 h | 15 min | point-in-time restore, snapshots |
+| Streaming  | 5 min | 0 min | Kafka 3× replication, mirror-topics |
+
+*Backfill Plan:* replay CDC logs from offset X; historical S3 manifests.
 
 ---
 
-## 13 · Change Log
+## 11 · **Cost & FinOps**
+
+| Item | Details |
+|------|---------|
+| **Budget Owner** | |
+| **Monthly Spend Target** | USD ___ |
+| **Cost Monitors** | BQ slots · Snowflake credits · S3 storage |
+| **Optimisation Levers** | partition pruning · materialised views · workload-manager rules |
+| **Chargeback Tags** | `env`, `owner`, `product` |
+
+---
+
+## 12 · **Runbook & Incident Management**
+
+| Topic | Info |
+|-------|------|
+| **Pager Rotation** | @data-oncall (Opsgenie schedule #123) |
+| **Common Failures** | connection timeout, schema drift, API rate-limit |
+| **Escalation Ladder** | L1 Data Eng → L2 Platform SRE → L3 DevOps |
+| **Handover Docs** | DAG diagram · KB article · Post-mortem template |
+
+---
+
+## 13 · **Change Log**
+
 | Date | Author | Change | Version |
 |------|--------|--------|---------|
-| 2025-07-23 | Niles D. | Initial full-choice template | v2.0 |
+| YYYY-MM-DD | Name | Initial template | v1.0 |
+| YYYY-MM-DD | Name | — | — |
