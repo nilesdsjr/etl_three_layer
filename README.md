@@ -49,4 +49,66 @@
 
 | Category | Common Operations (mark all required) |
 |----------|---------------------------------------|
-| **Data Quality / Hygiene** | ☐ Drop / flag nulls <br
+| **Data Quality / Hygiene** | ☐ Drop / flag nulls <br>☐ Type casting <br>☐ Trim whitespace <br>☐ Standardise timestamps / time-zones <br>☐ Deduplicate <br>☐ Outlier capping |
+| **Enrichment** | ☐ Look-ups / dimension joins <br>☐ Geo-coding <br>☐ Currency conversion <br>☐ ML inference (embedding, sentiment) |
+| **Filtering** | ☐ Row, ☐ Column, ☐ Time-window, ☐ PII strip |
+| **Aggregations** | ☐ Sum, Avg, Min/Max, Median <br>☐ Window funcs <br>☐ Sessionisation |
+| **Restructuring** | ☐ Pivot / Unpivot <br>☐ Flatten nested JSON <br>☐ Explode arrays |
+| **Governance** | ☐ Hash / Mask PII <br>☐ Tokenise <br>☐ Apply data contract (schema registry) |
+| **Incremental Pattern** | ☐ Append-only <br>☐ Merge-on-read (delta/iceberg) <br>☐ Partition overwrite <br>☐ SCD Type 1/2 <br>☐ Snapshotting |
+| **Testing** | dbt tests, Great Expectations, Soda, unit (pytest-sql), integration dry-runs |
+
+---
+
+## 5 · Load / Serve Phase  (choose details)
+
+| Item | Options | Selected |
+|------|---------|----------|
+| **Destination** | Warehouse, Data Lake, Lakehouse, Feature Store, Relational DB, BI extract, Search index, Message Bus, API | |
+| **Load Strategy** | ☐ Append <br>☐ Upsert / MERGE <br>☐ Overwrite <br>☐ Micro-batch <br>☐ Streaming (exactly-once) | |
+| **Table Format** | ☐ Native (Snowflake) <br>☐ Delta <br>☐ Iceberg <br>☐ Hudi | |
+| **Partition / Cluster Keys** | — | |
+| **Retention / TTL** | — | |
+| **Post-load Validation** | Row-count check, checksum, statistical compare | |
+
+---
+
+## 6 · Data-Quality Management  🔍
+*(keep or extend the matrix; choices already embedded)*
+
+---
+
+## 7 · Orchestration & CI/CD
+*(unchanged – list scheduler, triggers, retries, GitOps flow, etc.)*
+
+---
+
+## 8 · Observability, Lineage & Metrics
+*(unchanged – pick OpenLineage, DataHub, Monte Carlo, etc.)*
+
+---
+
+## 9 · Security & Compliance
+*(unchanged – IAM, encryption, RLS/CLS, masking, audit logs, …)*
+
+---
+
+## 10 · Disaster Recovery & Backfill
+*(select RTO/RPO strategy; include replay method for batch vs stream)*
+
+---
+
+## 11 · Cost & FinOps
+*(specify slot/credit budgets, optimisation levers, chargeback tags)*
+
+---
+
+## 12 · Runbook & Incident Mgmt
+*(pager rotation, escalation, common fixes, post-mortem template)*
+
+---
+
+## 13 · Change Log
+| Date | Author | Change | Version |
+|------|--------|--------|---------|
+| 2025-07-23 | Niles D. | Initial full-choice template | v2.0 |
